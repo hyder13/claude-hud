@@ -197,6 +197,7 @@ To disable, set `display.showUsage` to `false`.
 - API users see no usage display (they have pay-per-token, not rate limits)
 - AWS Bedrock models display `Bedrock` and hide usage limits (usage is managed in AWS)
 - Claude Code may leave `rate_limits` empty until after the first model response in a session
+- If you only need to route Anthropic traffic through your network, use `HTTPS_PROXY` / `HTTP_PROXY` / `ALL_PROXY` rather than `ANTHROPIC_BASE_URL`
 - Non-default `ANTHROPIC_BASE_URL` / `ANTHROPIC_API_BASE_URL` settings skip usage display, because the Anthropic OAuth usage API may not apply
 - If you are behind a proxy, set `HTTPS_PROXY` (or `HTTP_PROXY`/`ALL_PROXY`) and optional `NO_PROXY`
 - For high-latency environments, increase the usage API timeout with `CLAUDE_HUD_USAGE_TIMEOUT_MS` (milliseconds)
