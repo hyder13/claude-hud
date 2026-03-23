@@ -356,7 +356,7 @@ test('renderProjectLine includes Claude Code version when enabled', () => {
   assert.ok(line.includes('CC v2.1.81'));
 });
 
-test('renderMemoryLine shows coarse system RAM usage in expanded layout when enabled', () => {
+test('renderMemoryLine shows approximate system RAM usage in expanded layout when enabled', () => {
   const ctx = baseContext();
   ctx.config.lineLayout = 'expanded';
   ctx.config.display.showMemoryUsage = true;
@@ -369,7 +369,7 @@ test('renderMemoryLine shows coarse system RAM usage in expanded layout when ena
 
   const line = stripAnsi(renderMemoryLine(ctx));
 
-  assert.ok(line.includes('RAM'));
+  assert.ok(line.includes('Approx RAM'));
   assert.ok(line.includes('10 GB / 16 GB'));
   assert.ok(line.includes('(63%)'));
 });
@@ -1338,7 +1338,7 @@ test('render expanded layout honors custom elementOrder including activity place
   const toolIndex = lines.findIndex(line => line.includes('Read'));
   const projectIndex = lines.findIndex(line => line.includes('my-project'));
   const combinedIndex = lines.findIndex(line => line.includes('Usage') && line.includes('Context'));
-  const memoryIndex = lines.findIndex(line => line.includes('RAM'));
+  const memoryIndex = lines.findIndex(line => line.includes('Approx RAM'));
   const environmentIndex = lines.findIndex(line => line.includes('CLAUDE.md'));
   const agentIndex = lines.findIndex(line => line.includes('planner'));
   const todoIndex = lines.findIndex(line => line.includes('todo-marker'));
@@ -1392,7 +1392,7 @@ test('render expanded layout omits elements not present in elementOrder', () => 
   assert.ok(output.includes('Read'), 'tools should render when included');
   assert.ok(!output.includes('Context'), 'context should be omitted when excluded');
   assert.ok(!output.includes('Usage'), 'usage should be omitted when excluded');
-  assert.ok(!output.includes('RAM'), 'memory should be omitted when excluded');
+  assert.ok(!output.includes('Approx RAM'), 'memory should be omitted when excluded');
   assert.ok(!output.includes('CLAUDE.md'), 'environment should be omitted when excluded');
   assert.ok(!output.includes('planner'), 'agents should be omitted when excluded');
   assert.ok(!output.includes('todo-marker'), 'todos should be omitted when excluded');

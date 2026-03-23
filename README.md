@@ -160,7 +160,7 @@ Edit `~/.claude/plugins/claude-hud/config.json` directly for advanced settings s
 | `display.showTodos` | boolean | false | Show todos progress line |
 | `display.showSessionName` | boolean | false | Show session slug or custom title from `/rename` |
 | `display.showClaudeCodeVersion` | boolean | false | Show the installed Claude Code version, e.g. `CC v2.1.81` |
-| `display.showMemoryUsage` | boolean | false | Show a coarse system RAM usage line in expanded layout |
+| `display.showMemoryUsage` | boolean | false | Show an approximate system RAM usage line in expanded layout |
 | `usage.cacheTtlSeconds` | number | 60 | How long (seconds) to cache a successful usage API response |
 | `usage.failureCacheTtlSeconds` | number | 15 | How long (seconds) to cache a failed usage API response before retrying |
 | `colors.context` | color name | `green` | Base color for the context bar and context percentage |
@@ -171,7 +171,7 @@ Edit `~/.claude/plugins/claude-hud/config.json` directly for advanced settings s
 
 Supported color names: `red`, `green`, `yellow`, `magenta`, `cyan`, `brightBlue`, `brightMagenta`.
 
-`display.showMemoryUsage` is fully opt-in and only renders in `expanded` layout. It reports coarse system RAM usage from the local machine, not precise memory pressure inside Claude Code or a specific process.
+`display.showMemoryUsage` is fully opt-in and only renders in `expanded` layout. It reports approximate system RAM usage from the local machine, not precise memory pressure inside Claude Code or a specific process. The number may overstate actual pressure because reclaimable OS cache and buffers can still be counted as used memory.
 
 ### Usage Limits (Pro/Max/Team)
 
