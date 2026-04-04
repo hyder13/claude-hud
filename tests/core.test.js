@@ -6,7 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { _setCreateReadStreamForTests, parseTranscript } from '../dist/transcript.js';
 import { countConfigs } from '../dist/config-reader.js';
-import { getContextPercent, getBufferedPercent, getModelName, getProviderLabel, getUsageFromStdin, isBedrockModelId } from '../dist/stdin.js';
+import { getContextPercent, getBufferedPercent, getModelName, getProviderLabel, getUsageFromStdin, isBedrockModelId, stripContextSuffix, formatModelName } from '../dist/stdin.js';
 import * as fs from 'node:fs';
 
 function restoreEnvVar(name, value) {
@@ -275,6 +275,61 @@ test('getModelName precedence: trimmed display name, then normalized bedrock lab
   assert.equal(getModelName({}), 'Unknown');
 });
 
+test('stripContextSuffix removes parenthetical context-window info', () => {
+  assert.equal(stripContextSuffix('Opus 4.6 (1M context)'), 'Opus 4.6');
+  assert.equal(stripContextSuffix('Sonnet 4 (200k context)'), 'Sonnet 4');
+  assert.equal(stripContextSuffix('Claude 3.5 Haiku (200k context)'), 'Claude 3.5 Haiku');
+  assert.equal(stripContextSuffix('Model (with 1M context)'), 'Model');
+  assert.equal(stripContextSuffix('Model (extended context window)'), 'Model');
+  // Case-insensitive
+  assert.equal(stripContextSuffix('Opus (1M CONTEXT)'), 'Opus');
+  // Preserves non-context parentheticals
+  assert.equal(stripContextSuffix('Model (beta)'), 'Model (beta)');
+  assert.equal(stripContextSuffix('Model (preview)'), 'Model (preview)');
+  // No-op when no suffix present
+  assert.equal(stripContextSuffix('Sonnet 4.6'), 'Sonnet 4.6');
+  assert.equal(stripContextSuffix(''), '');
+});
+
+test('formatModelName full mode returns name unchanged', () => {
+  assert.equal(formatModelName('Opus 4.6 (1M context)', 'full'), 'Opus 4.6 (1M context)');
+  assert.equal(formatModelName('Claude Sonnet 3.5', 'full'), 'Claude Sonnet 3.5');
+  // undefined format defaults to full (backward-compatible)
+  assert.equal(formatModelName('Opus 4.6 (1M context)'), 'Opus 4.6 (1M context)');
+});
+
+test('formatModelName compact mode strips context suffix only', () => {
+  assert.equal(formatModelName('Opus 4.6 (1M context)', 'compact'), 'Opus 4.6');
+  assert.equal(formatModelName('Claude Sonnet 3.5 (200k context)', 'compact'), 'Claude Sonnet 3.5');
+  assert.equal(formatModelName('Claude Haiku (with 1M context)', 'compact'), 'Claude Haiku');
+  // Preserves "Claude " prefix in compact mode
+  assert.equal(formatModelName('Claude Opus 4.5', 'compact'), 'Claude Opus 4.5');
+  // Preserves non-context parentheticals
+  assert.equal(formatModelName('Model (beta)', 'compact'), 'Model (beta)');
+});
+
+test('formatModelName short mode strips context suffix and Claude prefix', () => {
+  assert.equal(formatModelName('Claude Opus 4.5 (1M context)', 'short'), 'Opus 4.5');
+  assert.equal(formatModelName('Claude Sonnet 3.5 (200k context)', 'short'), 'Sonnet 3.5');
+  assert.equal(formatModelName('Claude Haiku', 'short'), 'Haiku');
+  // Already short names are unchanged
+  assert.equal(formatModelName('Opus 4.6', 'short'), 'Opus 4.6');
+  assert.equal(formatModelName('Sonnet', 'short'), 'Sonnet');
+  // Case-insensitive Claude prefix removal
+  assert.equal(formatModelName('claude Opus 4.5', 'short'), 'Opus 4.5');
+});
+
+test('formatModelName override replaces model name entirely', () => {
+  // Override takes precedence over format
+  assert.equal(formatModelName('Claude Opus 4.5', 'full', "zane's intelligent opus"), "zane's intelligent opus");
+  assert.equal(formatModelName('Claude Opus 4.5', 'compact', 'My Model'), 'My Model');
+  assert.equal(formatModelName('Claude Opus 4.5', 'short', 'Custom'), 'Custom');
+  assert.equal(formatModelName('Claude Opus 4.5', undefined, 'Override'), 'Override');
+  // Empty override is treated as unset (falls through to format)
+  assert.equal(formatModelName('Claude Opus 4.5 (1M context)', 'compact', ''), 'Claude Opus 4.5');
+  assert.equal(formatModelName('Opus 4.6', 'full', ''), 'Opus 4.6');
+});
+
 test('bedrock model detection recognizes bedrock ids', () => {
   assert.ok(isBedrockModelId('anthropic.claude-3-5-sonnet-20240620-v1:0'));
   assert.ok(isBedrockModelId('eu.anthropic.claude-opus-4-5-20251101-v1:0'));
@@ -298,6 +353,79 @@ test('parseTranscript aggregates tools, agents, and todos', async () => {
   assert.equal(result.todos[2].status, 'completed');
   assert.equal(result.todos[3].status, 'in_progress');
   assert.equal(result.sessionStart?.toISOString(), '2024-01-01T00:00:00.000Z');
+});
+
+test('TaskCreate taskId is preserved across TodoWrite and usable by TaskUpdate', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'claude-hud-'));
+  const filePath = path.join(dir, 'taskid-preserve.jsonl');
+  const lines = [
+    // 1. TaskCreate adds a task with taskId "alpha"
+    JSON.stringify({
+      timestamp: '2024-01-01T00:00:00.000Z',
+      message: { content: [{ type: 'tool_use', id: 'tc-1', name: 'TaskCreate', input: { taskId: 'alpha', subject: 'Build feature' } }] },
+    }),
+    // 2. TodoWrite replaces the list but includes the same content
+    JSON.stringify({
+      timestamp: '2024-01-01T00:00:01.000Z',
+      message: { content: [{ type: 'tool_use', id: 'tw-1', name: 'TodoWrite', input: { todos: [
+        { content: 'Build feature', status: 'in_progress' },
+        { content: 'Write tests', status: 'pending' },
+      ] } }] },
+    }),
+    // 3. TaskUpdate uses taskId "alpha" — should resolve to the preserved mapping
+    JSON.stringify({
+      timestamp: '2024-01-01T00:00:02.000Z',
+      message: { content: [{ type: 'tool_use', id: 'tu-1', name: 'TaskUpdate', input: { taskId: 'alpha', status: 'completed' } }] },
+    }),
+  ];
+
+  await writeFile(filePath, lines.join('\n'), 'utf8');
+
+  try {
+    const result = await parseTranscript(filePath);
+    assert.equal(result.todos.length, 2);
+    assert.equal(result.todos[0].content, 'Build feature');
+    assert.equal(result.todos[0].status, 'completed', 'TaskUpdate via preserved taskId should mark todo completed');
+    assert.equal(result.todos[1].content, 'Write tests');
+    assert.equal(result.todos[1].status, 'pending');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('TodoWrite without prior TaskCreate works as before (no regression)', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'claude-hud-'));
+  const filePath = path.join(dir, 'todowrite-only.jsonl');
+  const lines = [
+    JSON.stringify({
+      timestamp: '2024-01-01T00:00:00.000Z',
+      message: { content: [{ type: 'tool_use', id: 'tw-1', name: 'TodoWrite', input: { todos: [
+        { content: 'Task A', status: 'completed' },
+        { content: 'Task B', status: 'in_progress' },
+      ] } }] },
+    }),
+    // Second TodoWrite replaces the list
+    JSON.stringify({
+      timestamp: '2024-01-01T00:00:01.000Z',
+      message: { content: [{ type: 'tool_use', id: 'tw-2', name: 'TodoWrite', input: { todos: [
+        { content: 'Task B', status: 'completed' },
+        { content: 'Task C', status: 'pending' },
+      ] } }] },
+    }),
+  ];
+
+  await writeFile(filePath, lines.join('\n'), 'utf8');
+
+  try {
+    const result = await parseTranscript(filePath);
+    assert.equal(result.todos.length, 2);
+    assert.equal(result.todos[0].content, 'Task B');
+    assert.equal(result.todos[0].status, 'completed');
+    assert.equal(result.todos[1].content, 'Task C');
+    assert.equal(result.todos[1].status, 'pending');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 });
 
 test('parseTranscript prefers custom title over slug for session name', async () => {

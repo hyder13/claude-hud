@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { setLanguage, getLanguage, t } from "../dist/i18n/index.js";
-import { detectLanguage, mergeConfig } from "../dist/config.js";
+import { mergeConfig } from "../dist/config.js";
 
 test("t() returns English strings by default", () => {
   setLanguage("en");
@@ -35,68 +35,9 @@ test("setLanguage and getLanguage round-trip", () => {
   assert.equal(getLanguage(), "en");
 });
 
-test("detectLanguage respects LC_ALL over LANG (POSIX priority)", () => {
-  const origLang = process.env.LANG;
-  const origLcAll = process.env.LC_ALL;
-  const origLcMsg = process.env.LC_MESSAGES;
-
-  try {
-    process.env.LANG = "en_US.UTF-8";
-    process.env.LC_ALL = "zh_CN.UTF-8";
-    delete process.env.LC_MESSAGES;
-    assert.equal(detectLanguage(), "zh");
-
-    process.env.LC_ALL = "en_US.UTF-8";
-    process.env.LANG = "zh_CN.UTF-8";
-    assert.equal(detectLanguage(), "en");
-
-    delete process.env.LC_ALL;
-    assert.equal(detectLanguage(), "zh");
-  } finally {
-    process.env.LANG = origLang;
-    process.env.LC_ALL = origLcAll;
-    process.env.LC_MESSAGES = origLcMsg;
-  }
-});
-
-test("detectLanguage returns en for unknown locales", () => {
-  const origLang = process.env.LANG;
-  const origLcAll = process.env.LC_ALL;
-  const origLcMsg = process.env.LC_MESSAGES;
-
-  try {
-    delete process.env.LC_ALL;
-    delete process.env.LC_MESSAGES;
-    process.env.LANG = "fr_FR.UTF-8";
-    assert.equal(detectLanguage(), "en");
-
-    process.env.LANG = "C";
-    assert.equal(detectLanguage(), "en");
-
-    delete process.env.LANG;
-    assert.equal(detectLanguage(), "en");
-  } finally {
-    process.env.LANG = origLang;
-    process.env.LC_ALL = origLcAll;
-    process.env.LC_MESSAGES = origLcMsg;
-  }
-});
-
-test("mergeConfig uses detectLanguage when no language specified", () => {
-  const origLcAll = process.env.LC_ALL;
-  const origLang = process.env.LANG;
-  const origLcMsg = process.env.LC_MESSAGES;
-
-  try {
-    process.env.LC_ALL = "zh_CN.UTF-8";
-    delete process.env.LC_MESSAGES;
-    const config = mergeConfig({});
-    assert.equal(config.language, "zh");
-  } finally {
-    process.env.LC_ALL = origLcAll;
-    process.env.LANG = origLang;
-    process.env.LC_MESSAGES = origLcMsg;
-  }
+test("mergeConfig defaults to English when no language is specified", () => {
+  const config = mergeConfig({});
+  assert.equal(config.language, "en");
 });
 
 test("mergeConfig preserves explicit language from config", () => {
@@ -107,20 +48,7 @@ test("mergeConfig preserves explicit language from config", () => {
   assert.equal(config2.language, "en");
 });
 
-test("mergeConfig falls back to detection for invalid language", () => {
-  const origLcAll = process.env.LC_ALL;
-  const origLang = process.env.LANG;
-  const origLcMsg = process.env.LC_MESSAGES;
-
-  try {
-    delete process.env.LC_ALL;
-    delete process.env.LC_MESSAGES;
-    process.env.LANG = "C";
-    const config = mergeConfig({ language: "invalid" });
-    assert.equal(config.language, "en");
-  } finally {
-    process.env.LC_ALL = origLcAll;
-    process.env.LANG = origLang;
-    process.env.LC_MESSAGES = origLcMsg;
-  }
+test("mergeConfig falls back to English for invalid language", () => {
+  const config = mergeConfig({ language: "invalid" });
+  assert.equal(config.language, "en");
 });

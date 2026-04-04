@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { render } from '../dist/render/index.js';
+import { setLanguage } from '../dist/i18n/index.js';
 
 function baseContext() {
   return {
@@ -286,4 +287,30 @@ test('render truncation respects Unicode display width', () => {
 
   assert.ok(lines.some(line => line.includes('...')), 'should truncate an overlong Unicode segment');
   assert.ok(lines.every(line => displayWidth(line) <= 10), 'all lines should respect terminal cell width');
+});
+
+test('render respects terminal width with Chinese labels enabled', () => {
+  const ctx = baseContext();
+  ctx.config.lineLayout = 'expanded';
+  ctx.usageData = {
+    planName: 'Pro',
+    fiveHour: 42,
+    sevenDay: 12,
+    fiveHourResetAt: new Date(Date.now() + 90 * 60000),
+    sevenDayResetAt: new Date(Date.now() + 24 * 60 * 60000),
+  };
+
+  let lines = [];
+  setLanguage('zh');
+  try {
+    withTerminal(18, () => {
+      lines = captureRender(ctx);
+    });
+  } finally {
+    setLanguage('en');
+  }
+
+  assert.ok(lines.some(line => line.includes('上下文')), 'should render the translated context label');
+  assert.ok(lines.some(line => line.includes('用量')), 'should render the translated usage label');
+  assert.ok(lines.every(line => displayWidth(line) <= 18), 'all lines should fit terminal width with CJK labels');
 });

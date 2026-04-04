@@ -3,7 +3,7 @@ import { parseTranscript } from "./transcript.js";
 import { render } from "./render/index.js";
 import { countConfigs } from "./config-reader.js";
 import { getGitStatus } from "./git.js";
-import { loadConfig, detectLanguage } from "./config.js";
+import { loadConfig } from "./config.js";
 import { parseExtraCmdArg, runExtraCmd } from "./extra-cmd.js";
 import { getClaudeCodeVersion } from "./version.js";
 import { getMemoryUsage } from "./memory.js";
@@ -51,8 +51,8 @@ export async function main(overrides: Partial<MainDeps> = {}): Promise<void> {
 
     if (!stdin) {
       // Running without stdin - this happens during setup verification
-      // Use sync env detection to avoid async delay in init messages
-      setLanguage(detectLanguage());
+      const config = await deps.loadConfig();
+      setLanguage(config.language);
       const isMacOS = process.platform === "darwin";
       deps.log(t("init.initializing"));
       if (isMacOS) {
