@@ -7,6 +7,7 @@ export const zh = {
     "label.rules": "规则",
     "label.hooks": "钩子",
     "label.estimatedCost": "估算",
+    "label.cost": "费用",
     // Status
     "status.limitReached": "已达上限",
     "status.allTodosComplete": "全部完成",
