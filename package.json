@@ -1,7 +1,7 @@
 {
   "name": "claude-hud",
-  "version": "0.0.12",
-  "description": "Real-time statusline HUD for Claude Code",
+  "version": "0.1.0",
+  "description": "Real-time statusline HUD for Claude Code — with beginner tips",
   "type": "module",
   "main": "dist/index.js",
   "files": [
@@ -23,7 +23,7 @@
     "statusline",
     "hud"
   ],
-  "author": "Jarrod Watts",
+  "author": "Hyder (forked from Jarrod Watts)",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"

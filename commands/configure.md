@@ -46,7 +46,8 @@ Questions: **Turn Off → Turn On → Git Style → Layout/Reset → Language �
 - question: "Choose a starting configuration:"
 - multiSelect: false
 - options:
-  - "Full" - Everything enabled (Recommended)
+  - "Beginner (新手推薦)" - Activity + tips + usage, great for learning Claude Code
+  - "Full" - Everything enabled
   - "Essential" - Activity + git, minimal info
   - "Minimal" - Core only (model, context bar)
 
@@ -77,13 +78,14 @@ Save as `language: "en"` or `language: "zh"`.
   - "Session duration" - ⏱️ 5m
   - "Session name" - fix-auth-bug (session slug or custom title)
   - "Session tokens" - Tokens 12.8M (in: 7k, out: 28k, cache: 12.8M)
+  - "Beginner tips" - ▶ /help 查看所有命令和技能 (rotating tips)
 
 ### Q5: Turn On (based on chosen preset)
 - header: "Turn On"
 - question: "Enable any of these? (disabled by your preset)"
 - multiSelect: true
 - options: **ONLY items that are OFF in the chosen preset** (max 4)
-  - (same list as above, filtered to OFF items)
+  - (same list as Q4, filtered to OFF items — includes "Beginner tips" if disabled)
 
 **Note:** If preset has all items ON (Full), Q5 shows "Nothing to enable - Full preset has everything!"
 If preset has all items OFF (Minimal), Q4 shows "Nothing to disable - Minimal preset is already minimal!"
@@ -155,6 +157,7 @@ Info items (Counts, Tokens, Usage, Speed, Duration) can be turned off via "Reset
   - "Switch to Compact" - Everything on one line (if not current)
   - "Reset to Full" - Enable everything
   - "Reset to Essential" - Activity + git only
+  - "Reset to Beginner" - Activity + tips + usage (新手推薦)
 
 ### Q5: Language
 - header: "Language"
@@ -188,16 +191,25 @@ If user chooses "Remove", set `display.customLine` to `""` in config.
 **Full** (everything ON):
 - Activity: Tools ON, Agents ON, Todos ON
 - Info: Counts ON, Tokens ON, Usage ON, Duration ON, Session Name ON, Session Tokens ON
+- Tips: ON
 - Git: ON (with dirty indicator, no ahead/behind)
 
 **Essential** (activity + git):
 - Activity: Tools ON, Agents ON, Todos ON
 - Info: Counts OFF, Tokens OFF, Usage OFF, Duration ON, Session Name OFF, Session Tokens OFF
+- Tips: ON
+- Git: ON (with dirty indicator)
+
+**Beginner** (新手推薦):
+- Activity: Tools ON, Agents ON, Todos ON
+- Info: Counts ON, Tokens OFF, Usage ON, Duration ON, Session Name OFF, Session Tokens OFF
+- Tips: ON (tipsLanguage: "zh-TW")
 - Git: ON (with dirty indicator)
 
 **Minimal** (core only — this is the default):
 - Activity: Tools OFF, Agents OFF, Todos OFF
 - Info: Counts OFF, Tokens OFF, Usage OFF, Duration OFF, Session Name OFF, Session Tokens OFF
+- Tips: OFF
 - Git: ON (with dirty indicator)
 
 ---
@@ -250,6 +262,10 @@ If user chooses "Remove", set `display.customLine` to `""` in config.
 | Session duration | `display.showDuration` |
 | Session tokens | `display.showSessionTokens` |
 | Custom line | `display.customLine` |
+| Beginner tips | `display.showTips` |
+| Tips language | `display.tipsLanguage` (`"zh-TW"` or `"en"`) |
+| Tips interval | `display.tipsInterval` (seconds, 5-300, default 30) |
+| Custom tips | `display.customTips` (array of strings) |
 
 **Always true (not configurable):**
 - `display.showModel: true`

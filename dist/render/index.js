@@ -3,6 +3,7 @@ import { renderSessionLine } from './session-line.js';
 import { renderToolsLine } from './tools-line.js';
 import { renderAgentsLine } from './agents-line.js';
 import { renderTodosLine } from './todos-line.js';
+import { renderTipsLine } from './tips-line.js';
 import { renderIdentityLine, renderProjectLine, renderGitFilesLine, renderEnvironmentLine, renderUsageLine, renderMemoryLine, renderSessionTokensLine, } from './lines/index.js';
 import { dim, RESET } from './colors.js';
 import { UNKNOWN_TERMINAL_WIDTH } from '../utils/terminal.js';
@@ -296,6 +297,8 @@ function renderElementLine(ctx, element) {
             return display?.showAgents === false ? null : renderAgentsLine(ctx);
         case 'todos':
             return display?.showTodos === false ? null : renderTodosLine(ctx);
+        case 'tips':
+            return display?.showTips === false ? null : renderTipsLine(ctx);
     }
 }
 function renderCompact(ctx) {
@@ -396,6 +399,13 @@ export function render(ctx) {
             lines.push(makeSeparator(separatorWidth));
         }
         lines.push(...activityLines);
+    }
+    // Tips line at the very bottom for compact mode (expanded handles it via elementOrder)
+    if (lineLayout === 'compact' && ctx.config?.display?.showTips !== false) {
+        const tipsLine = renderTipsLine(ctx);
+        if (tipsLine) {
+            lines.push(tipsLine);
+        }
     }
     const physicalLines = lines.flatMap(line => line.split('\n'));
     const visibleLines = physicalLines.flatMap(line => wrapLineToWidth(line, terminalWidth));

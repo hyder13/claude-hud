@@ -17,7 +17,8 @@ export type ContextValueMode = 'percent' | 'tokens' | 'remaining' | 'both';
  *   short:   Strip context suffix AND "Claude " prefix (e.g. "Opus 4.6")
  */
 export type ModelFormatMode = 'full' | 'compact' | 'short';
-export type HudElement = 'project' | 'context' | 'usage' | 'memory' | 'environment' | 'tools' | 'agents' | 'todos';
+export type TipsLanguage = 'zh-TW' | 'en';
+export type HudElement = 'project' | 'context' | 'usage' | 'memory' | 'environment' | 'tools' | 'agents' | 'todos' | 'tips';
 export type HudColorName =
   | 'dim'
   | 'red'
@@ -43,6 +44,7 @@ export interface HudColorOverrides {
   gitBranch: HudColorValue;
   label: HudColorValue;
   custom: HudColorValue;
+  tips: HudColorValue;
 }
 
 export const DEFAULT_ELEMENT_ORDER: HudElement[] = [
@@ -54,6 +56,7 @@ export const DEFAULT_ELEMENT_ORDER: HudElement[] = [
   'tools',
   'agents',
   'todos',
+  'tips',
 ];
 
 const KNOWN_ELEMENTS = new Set<HudElement>(DEFAULT_ELEMENT_ORDER);
@@ -99,6 +102,10 @@ export interface HudConfig {
     modelFormat: ModelFormatMode;
     modelOverride: string;
     customLine: string;
+    showTips: boolean;
+    tipsLanguage: TipsLanguage;
+    tipsInterval: number;
+    customTips: string[];
   };
   colors: HudColorOverrides;
 }
@@ -144,6 +151,10 @@ export const DEFAULT_CONFIG: HudConfig = {
     modelFormat: 'full',
     modelOverride: '',
     customLine: '',
+    showTips: true,
+    tipsLanguage: 'zh-TW',
+    tipsInterval: 30,
+    customTips: [],
   },
   colors: {
     context: 'green',
@@ -157,6 +168,7 @@ export const DEFAULT_CONFIG: HudConfig = {
     gitBranch: 'cyan',
     label: 'dim',
     custom: 208,
+    tips: 'cyan',
   },
 };
 
@@ -187,6 +199,10 @@ function validateLanguage(value: unknown): value is Language {
 
 function validateModelFormat(value: unknown): value is ModelFormatMode {
   return value === 'full' || value === 'compact' || value === 'short';
+}
+
+function validateTipsLanguage(value: unknown): value is TipsLanguage {
+  return value === 'zh-TW' || value === 'en';
 }
 
 function validateColorName(value: unknown): value is HudColorName {
@@ -386,6 +402,21 @@ export function mergeConfig(userConfig: Partial<HudConfig>): HudConfig {
     customLine: typeof migrated.display?.customLine === 'string'
       ? migrated.display.customLine.slice(0, 80)
       : DEFAULT_CONFIG.display.customLine,
+    showTips: typeof migrated.display?.showTips === 'boolean'
+      ? migrated.display.showTips
+      : DEFAULT_CONFIG.display.showTips,
+    tipsLanguage: validateTipsLanguage(migrated.display?.tipsLanguage)
+      ? migrated.display.tipsLanguage
+      : DEFAULT_CONFIG.display.tipsLanguage,
+    tipsInterval: typeof migrated.display?.tipsInterval === 'number'
+        && Number.isFinite(migrated.display.tipsInterval)
+        && migrated.display.tipsInterval >= 5
+        && migrated.display.tipsInterval <= 300
+      ? Math.floor(migrated.display.tipsInterval)
+      : DEFAULT_CONFIG.display.tipsInterval,
+    customTips: Array.isArray(migrated.display?.customTips)
+      ? migrated.display.customTips.filter((t: unknown) => typeof t === 'string' && t.length > 0).slice(0, 50)
+      : DEFAULT_CONFIG.display.customTips,
   };
 
   const colors = {
@@ -422,6 +453,9 @@ export function mergeConfig(userConfig: Partial<HudConfig>): HudConfig {
     custom: validateColorValue(migrated.colors?.custom)
       ? migrated.colors.custom
       : DEFAULT_CONFIG.colors.custom,
+    tips: validateColorValue(migrated.colors?.tips)
+      ? migrated.colors.tips
+      : DEFAULT_CONFIG.colors.tips,
   };
 
   return { language, lineLayout, showSeparators, pathLevels, elementOrder, gitStatus, display, colors };

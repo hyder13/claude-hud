@@ -11,6 +11,7 @@ export const DEFAULT_ELEMENT_ORDER = [
     'tools',
     'agents',
     'todos',
+    'tips',
 ];
 const KNOWN_ELEMENTS = new Set(DEFAULT_ELEMENT_ORDER);
 export const DEFAULT_CONFIG = {
@@ -54,6 +55,10 @@ export const DEFAULT_CONFIG = {
         modelFormat: 'full',
         modelOverride: '',
         customLine: '',
+        showTips: true,
+        tipsLanguage: 'zh-TW',
+        tipsInterval: 30,
+        customTips: [],
     },
     colors: {
         context: 'green',
@@ -67,6 +72,7 @@ export const DEFAULT_CONFIG = {
         gitBranch: 'cyan',
         label: 'dim',
         custom: 208,
+        tips: 'cyan',
     },
 };
 export function getConfigPath() {
@@ -90,6 +96,9 @@ function validateLanguage(value) {
 }
 function validateModelFormat(value) {
     return value === 'full' || value === 'compact' || value === 'short';
+}
+function validateTipsLanguage(value) {
+    return value === 'zh-TW' || value === 'en';
 }
 function validateColorName(value) {
     return value === 'dim'
@@ -273,6 +282,21 @@ export function mergeConfig(userConfig) {
         customLine: typeof migrated.display?.customLine === 'string'
             ? migrated.display.customLine.slice(0, 80)
             : DEFAULT_CONFIG.display.customLine,
+        showTips: typeof migrated.display?.showTips === 'boolean'
+            ? migrated.display.showTips
+            : DEFAULT_CONFIG.display.showTips,
+        tipsLanguage: validateTipsLanguage(migrated.display?.tipsLanguage)
+            ? migrated.display.tipsLanguage
+            : DEFAULT_CONFIG.display.tipsLanguage,
+        tipsInterval: typeof migrated.display?.tipsInterval === 'number'
+            && Number.isFinite(migrated.display.tipsInterval)
+            && migrated.display.tipsInterval >= 5
+            && migrated.display.tipsInterval <= 300
+            ? Math.floor(migrated.display.tipsInterval)
+            : DEFAULT_CONFIG.display.tipsInterval,
+        customTips: Array.isArray(migrated.display?.customTips)
+            ? migrated.display.customTips.filter((t) => typeof t === 'string' && t.length > 0).slice(0, 50)
+            : DEFAULT_CONFIG.display.customTips,
     };
     const colors = {
         context: validateColorValue(migrated.colors?.context)
@@ -308,6 +332,9 @@ export function mergeConfig(userConfig) {
         custom: validateColorValue(migrated.colors?.custom)
             ? migrated.colors.custom
             : DEFAULT_CONFIG.colors.custom,
+        tips: validateColorValue(migrated.colors?.tips)
+            ? migrated.colors.tips
+            : DEFAULT_CONFIG.colors.tips,
     };
     return { language, lineLayout, showSeparators, pathLevels, elementOrder, gitStatus, display, colors };
 }
